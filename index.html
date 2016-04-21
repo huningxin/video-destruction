@@ -176,6 +176,8 @@ var RAD = Math.PI/180;
 var randomJump = false;
 var tiles = [];
 var debug = false;
+
+var diffThreshold = 0.8;
 function processFrame(){
 	if(!isNaN(video.duration)){
 		if(SOURCERECT.width == 0){
@@ -199,7 +201,7 @@ function processFrame(){
 	
 	for(var i=0; i<tiles.length; i++){
 		var tile = tiles[i];
-		if(tile.force > 0.0001){
+		if(tile.force > 0.3){
 			//expand
 			tile.moveX *= tile.force;
 			tile.moveY *= tile.force;
