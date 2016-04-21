@@ -34,6 +34,8 @@ function initWebCam() {
 	navigator.webkitGetUserMedia({video: true}, function(stream) {
 			webcam.src = window.URL.createObjectURL(stream);
 			webcam.onplay = function() {
+				var note = document.getElementById('note')
+				note.innerHTML = 'You may move hand to destruct the video.';
 				motion = true;
 			}
 		}, webcamError);
@@ -355,7 +357,7 @@ function copyPixel(sImageData, sx, sy, dImageData, dx, dy){
 	<div>
 	  <center>
 		<canvas id="output" width="1000" height="600" onmousedown="dropBomb(event, this)" style="border: solid 5px #666666"></canvas>
-		<p id=>You may need to reload the page if video isn't streaming properly.<p>
+		<p id='note' style='font-size: 20pt;'><p>
 	  </center>
 	</div>
 	<div style="display:none">
