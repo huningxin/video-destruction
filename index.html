@@ -8,6 +8,7 @@
 var video;
 var copy;
 var copycanvas;
+var outputcanvas;
 var draw;
 
 var TILE_WIDTH = 32;
@@ -100,27 +101,34 @@ function differenceAccuracy(target, data1, data2) {
 var averageThreshold = 100;
 var framesThreshold = 30;
 
+var lines = 8;
+var columns = 8;
+
 function checkAreas() {
 	if (frames < framesThreshold)
 		return;
 	else if (frames == framesThreshold)
 		console.log('start checkAreas');
 	// loop over the note areas
-	for (var r=0; r<8; ++r) {
-		var blendedData = contextBlended.getImageData(1/8*r*webcam.width, 0, webcam.width/8, 100);
-		var i = 0;
-		var average = 0;
-		// loop over the pixels
-		while (i < (blendedData.data.length * 0.25)) {
-			// make an average between the color channel
-			average += (blendedData.data[i*4] + blendedData.data[i*4+1] + blendedData.data[i*4+2]) / 3;
-			++i;
-		}
-		// calculate an average between of the color values of the note area
-		average = Math.round(average / (blendedData.data.length * 0.25));
-		if (average > averageThreshold) {
-			console.log('motion detecion at ' + r);
-			explode(1/8*r*copycanvas.width + 1/16*copycanvas.width, 300);
+	for (var l=0; l<lines; ++l) {
+		for (var r=0; r<columns; ++r) {
+			var blendedData = contextBlended.getImageData(
+				    1/columns*r*webcam.width, 1/lines*l*webcam.height, webcam.width/columns, webcam.height/lines);
+			var i = 0;
+			var average = 0;
+			// loop over the pixels
+			while (i < (blendedData.data.length * 0.25)) {
+				// make an average between the color channel
+				average += (blendedData.data[i*4] + blendedData.data[i*4+1] + blendedData.data[i*4+2]) / 3;
+				++i;
+			}
+			// calculate an average between of the color values of the note area
+			average = Math.round(average / (blendedData.data.length * 0.25));
+			if (average > averageThreshold) {
+				console.log('motion detecion at ' + r + ' ' + l);
+				explode(1/columns*r*outputcanvas.width + 1/(columns*2)*outputcanvas.width,
+					    1/lines*l*outputcanvas.height + 1/(lines*2)*outputcanvas.height);
+			}
 		}
 	}
 }
@@ -146,7 +154,7 @@ function init(){
 	video = document.getElementById('sourcevid');
 	copycanvas = document.getElementById('sourcecopy');
 	copy = copycanvas.getContext('2d');
-	var outputcanvas = document.getElementById('output');
+	outputcanvas = document.getElementById('output');
 	draw = outputcanvas.getContext('2d');
 	initWebCam();
 	update();
@@ -365,7 +373,7 @@ function copyPixel(sImageData, sx, sy, dImageData, dx, dy){
 	<div style="display:none">
 		<video id="webcam" muted autoplay width="640" height="480" style="display:none"></video>
 		<canvas id="canvas-source" width="640" height="480" style="display:none"></canvas>
-		<canvas id="canvas-blended" width="640" height="480" style="width: 320px; height: 240px; position: absolute; top: 0px;"></canvas>
+		<canvas id="canvas-blended" width="640" height="480" style="width: 320px; height: 240px; position: absolute; top: 0px; z-index: -1;"></canvas>
 	</div>
 </body>
 </html>
