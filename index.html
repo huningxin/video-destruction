@@ -22,6 +22,7 @@ var webcamError = function(e) {
 };
 
 var webcam, canvasSource, canvasBlended, contextSource, contextBlended, lastImageData;
+var motion = false;
 
 function initWebCam() {
 	webcam = document.getElementById('webcam');
@@ -32,17 +33,25 @@ function initWebCam() {
 	contextBlended = canvasBlended.getContext('2d');
 	navigator.webkitGetUserMedia({video: true}, function(stream) {
 			webcam.src = window.URL.createObjectURL(stream);
+			webcam.onplay = function() {
+				motion = true;
+			}
 		}, webcamError);
 	contextSource.translate(canvasSource.width, 0);
 	contextSource.scale(-1, 1);
 }
 
+var frames = 0;
+
 function update() {
-	drawVideo();
-	blend();
-	checkAreas();
 	processFrame();
-	webkitRequestAnimationFrame(update);
+	if (motion) {
+		frames++;
+		drawVideo();
+		blend();
+		checkAreas();
+	}
+	requestAnimationFrame(update);
 }
 
 function drawVideo() {
@@ -86,7 +95,14 @@ function differenceAccuracy(target, data1, data2) {
 	}
 }
 
+var averageThreshold = 100;
+var framesThreshold = 30;
+
 function checkAreas() {
+	if (frames < framesThreshold)
+		return;
+	else if (frames == framesThreshold)
+		console.log('start checkAreas');
 	// loop over the note areas
 	for (var r=0; r<8; ++r) {
 		var blendedData = contextBlended.getImageData(1/8*r*webcam.width, 0, webcam.width/8, 100);
@@ -100,7 +116,7 @@ function checkAreas() {
 		}
 		// calculate an average between of the color values of the note area
 		average = Math.round(average / (blendedData.data.length * 0.25));
-		if (average > 100) {
+		if (average > averageThreshold) {
 			console.log('motion detecion at ' + r);
 			explode(1/8*r*copycanvas.width + 1/16*copycanvas.width, 300);
 		}
@@ -331,7 +347,7 @@ function copyPixel(sImageData, sx, sy, dImageData, dx, dy){
 
 <body onload="init()" style="margin:0px;">
 	<div style="display:none">
-		<video id="sourcevid" autoplay="true" loop="true">
+		<video id="sourcevid" autoplay loop>
 			<source src="BigBuckBunny_640x360.ogv" type="video/ogg">
 		</video>
 		<canvas id="sourcecopy" width="640" height="360"></canvas>
@@ -341,10 +357,10 @@ function copyPixel(sImageData, sx, sy, dImageData, dx, dy){
 		<canvas id="output" width="1000" height="600" onmousedown="dropBomb(event, this)" style="border: solid 5px #666666"></canvas>
 	  </center>
 	</div>
-	<div style="display:none">
-		<video id="webcam" muted autoplay width="640" height="480"></video>
-		<canvas id="canvas-source" width="640" height="480"></canvas>
-		<canvas id="canvas-blended" width="640" height="480"></canvas>
+	<div>
+		<video id="webcam" muted autoplay width="640" height="480" style="display:none"></video>
+		<canvas id="canvas-source" width="640" height="480" style="display:none"></canvas>
+		<canvas id="canvas-blended" width="640" height="480" style="width: 320px; height: 240px; position: absolute; top: 0px;"></canvas>
 	</div>
 </body>
 </html>
