@@ -2,7 +2,7 @@
 <!-- saved from url=(0057)http://craftymind.com/factory/html5video/CanvasVideo.html -->
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>HTML5 Video Destruction</title> 
-
+<script type="text/javascript" src="dat.gui.js"></script>
 <script type="text/javascript">
 
 var video;
@@ -102,54 +102,77 @@ function differenceAccuracy(target, data1, data2) {
 	}
 }
 
-var averageThreshold = 100;
-var framesThreshold = 30;
+var Configuraton = function() {
+	this.motionThreshold = 100;
+	this.framesToSkip = 30;
+	this.restructionSpeed = 0.05;
 
-var lines = 8;
-var columns = 8;
-var margin = 1;
-var topOfCheckingArea = 1;
-var leftOfCheckingArea = 1;
-var rightOfCheckingArea = 7;
-var bottomOfCheckingArea = 7;
+	this.lines = 8;
+	this.columns = 8;
+	this.top = 1;
+	this.left = 1;
+	this.right = 6;
+	this.bottom = 6;
+}
+
+var config =new Configuraton();
+
+function initGUI() {
+	var gui = new dat.GUI();
+	gui.add(config, 'motionThreshold', 10, 300).step(10);
+	//gui.add(config, 'framesToSkip', 0, 100).step(1);
+	gui.add(config, 'restructionSpeed', 0.0001, 0.1).step(0.0001);
+	var f = gui.addFolder('Checking Area');
+	f.add(config, 'lines', 2, 8).step(1).onFinishChange(function(){drawAreas();});
+	f.add(config, 'columns', 2, 8).step(1).onFinishChange(function(){drawAreas();});
+	f.add(config, 'top').min(0).max(7).step(1).onFinishChange(function(){drawAreas();});
+	f.add(config, 'left').min(0).max(7).step(1).onFinishChange(function(){drawAreas();});
+	f.add(config, 'right').min(0).max(7).step(1).onFinishChange(function(){drawAreas();});
+	f.add(config, 'bottom').min(0).max(7).step(1).onFinishChange(function(){drawAreas();});
+}
 
 function drawAreas() {
 	canvasGrid = document.getElementById('canvas-grid');
 	contextGrid = canvasGrid.getContext('2d');
 
+	contextGrid.clearRect(0, 0, canvasGrid.width, canvasGrid.height);
+
 	contextGrid.strokeStyle = 'green';
 	contextGrid.lineWidth = 2;
 
-	for (var r=0; r<columns; ++r) {
+	for (var r=0; r<config.columns; ++r) {
 		contextGrid.beginPath();
-		contextGrid.moveTo(1/columns*r*canvasGrid.width, 0);
-		contextGrid.lineTo(1/columns*r*canvasGrid.width, canvasGrid.height);
+		contextGrid.moveTo(1/config.columns*r*canvasGrid.width, 0);
+		contextGrid.lineTo(1/config.columns*r*canvasGrid.width, canvasGrid.height);
 		contextGrid.stroke();
 	}
 
-	for (var l=0; l<lines; ++l) {
+	for (var l=0; l<config.lines; ++l) {
 		contextGrid.beginPath();
-		contextGrid.moveTo(0, 1/lines*l*canvasGrid.height);
-		contextGrid.lineTo(canvasGrid.width, 1/lines*l*canvasGrid.height);
+		contextGrid.moveTo(0, 1/config.lines*l*canvasGrid.height);
+		contextGrid.lineTo(canvasGrid.width, 1/config.lines*l*canvasGrid.height);
 		contextGrid.stroke();
 	}
 
 	contextGrid.strokeStyle = 'red';
+	contextGrid.lineWidth = 3;
 	contextGrid.beginPath();
-	contextGrid.strokeRect(1/columns*leftOfCheckingArea*canvasGrid.width, 1/lines*topOfCheckingArea*canvasGrid.height,
-		                   1/columns*(rightOfCheckingArea-1)*canvasGrid.width, 1/lines*(bottomOfCheckingArea-1)*canvasGrid.height);
+	contextGrid.strokeRect(1/config.columns*config.left*canvasGrid.width,
+		                   1/config.lines*config.top*canvasGrid.height,
+		                   1/config.columns*(config.right-config.left+1)*canvasGrid.width,
+		                   1/config.lines*(config.bottom-config.top+1)*canvasGrid.height);
 }
 
 function checkAreas() {
-	if (frames < framesThreshold)
+	if (frames < config.framesToSkip)
 		return;
-	else if (frames == framesThreshold)
+	else if (frames == config.framesToSkip)
 		console.log('start checkAreas');
 	// loop over the note areas
-	for (var l=topOfCheckingArea; l<bottomOfCheckingArea; ++l) {
-		for (var r=leftOfCheckingArea; r<rightOfCheckingArea; ++r) {
+	for (var l=config.top; l<=config.bottom; ++l) {
+		for (var r=config.left; r<=config.right; ++r) {
 			var blendedData = contextBlended.getImageData(
-				    1/columns*r*webcam.width, 1/lines*l*webcam.height, webcam.width/columns, webcam.height/lines);
+				    1/config.columns*r*webcam.width, 1/config.lines*l*webcam.height, webcam.width/config.columns, webcam.height/config.lines);
 			var i = 0;
 			var average = 0;
 			// loop over the pixels
@@ -160,10 +183,10 @@ function checkAreas() {
 			}
 			// calculate an average between of the color values of the note area
 			average = Math.round(average / (blendedData.data.length * 0.25));
-			if (average > averageThreshold) {
+			if (average > config.motionThreshold) {
 				console.log('motion detecion at ' + r + ' ' + l);
-				explode(1/columns*r*outputcanvas.width + 1/(columns*2)*outputcanvas.width,
-					    1/lines*l*outputcanvas.height + 1/(lines*2)*outputcanvas.height);
+				explode(1/config.columns*r*outputcanvas.width + 1/(config.columns*2)*outputcanvas.width,
+					    1/config.lines*l*outputcanvas.height + 1/(config.lines*2)*outputcanvas.height);
 			}
 		}
 	}
@@ -186,12 +209,15 @@ function blend() {
 	lastImageData = sourceData;
 }
 
+
+
 function init(){
 	video = document.getElementById('sourcevid');
 	copycanvas = document.getElementById('sourcecopy');
 	copy = copycanvas.getContext('2d');
 	outputcanvas = document.getElementById('output');
 	draw = outputcanvas.getContext('2d');
+	initGUI();
 	initWebCam();
 	update();
 }
@@ -245,7 +271,7 @@ function processFrame(){
 	
 	for(var i=0; i<tiles.length; i++){
 		var tile = tiles[i];
-		if(tile.force > 0.05){
+		if(tile.force > config.restructionSpeed){
 			//expand
 			tile.moveX *= tile.force;
 			tile.moveY *= tile.force;
