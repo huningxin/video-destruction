@@ -23,6 +23,7 @@ var webcamError = function(e) {
 };
 
 var webcam, canvasSource, canvasBlended, contextSource, contextBlended, lastImageData;
+var canvasGrid, contextGrid;
 var motion = false;
 
 function initWebCam() {
@@ -32,6 +33,7 @@ function initWebCam() {
 
 	contextSource = canvasSource.getContext('2d');
 	contextBlended = canvasBlended.getContext('2d');
+
 	navigator.webkitGetUserMedia({video: true}, function(stream) {
 			webcam.src = window.URL.createObjectURL(stream);
 			webcam.onplay = function() {
@@ -42,6 +44,8 @@ function initWebCam() {
 		}, webcamError);
 	contextSource.translate(canvasSource.width, 0);
 	contextSource.scale(-1, 1);
+
+	drawAreas();
 }
 
 var frames = 0;
@@ -103,6 +107,38 @@ var framesThreshold = 30;
 
 var lines = 8;
 var columns = 8;
+var margin = 1;
+var topOfCheckingArea = 1;
+var leftOfCheckingArea = 1;
+var rightOfCheckingArea = 7;
+var bottomOfCheckingArea = 7;
+
+function drawAreas() {
+	canvasGrid = document.getElementById('canvas-grid');
+	contextGrid = canvasGrid.getContext('2d');
+
+	contextGrid.strokeStyle = 'green';
+	contextGrid.lineWidth = 2;
+
+	for (var r=0; r<columns; ++r) {
+		contextGrid.beginPath();
+		contextGrid.moveTo(1/columns*r*canvasGrid.width, 0);
+		contextGrid.lineTo(1/columns*r*canvasGrid.width, canvasGrid.height);
+		contextGrid.stroke();
+	}
+
+	for (var l=0; l<lines; ++l) {
+		contextGrid.beginPath();
+		contextGrid.moveTo(0, 1/lines*l*canvasGrid.height);
+		contextGrid.lineTo(canvasGrid.width, 1/lines*l*canvasGrid.height);
+		contextGrid.stroke();
+	}
+
+	contextGrid.strokeStyle = 'red';
+	contextGrid.beginPath();
+	contextGrid.strokeRect(1/columns*leftOfCheckingArea*canvasGrid.width, 1/lines*topOfCheckingArea*canvasGrid.height,
+		                   1/columns*(rightOfCheckingArea-1)*canvasGrid.width, 1/lines*(bottomOfCheckingArea-1)*canvasGrid.height);
+}
 
 function checkAreas() {
 	if (frames < framesThreshold)
@@ -110,8 +146,8 @@ function checkAreas() {
 	else if (frames == framesThreshold)
 		console.log('start checkAreas');
 	// loop over the note areas
-	for (var l=0; l<lines; ++l) {
-		for (var r=0; r<columns; ++r) {
+	for (var l=topOfCheckingArea; l<bottomOfCheckingArea; ++l) {
+		for (var r=leftOfCheckingArea; r<rightOfCheckingArea; ++r) {
 			var blendedData = contextBlended.getImageData(
 				    1/columns*r*webcam.width, 1/lines*l*webcam.height, webcam.width/columns, webcam.height/lines);
 			var i = 0;
@@ -209,7 +245,7 @@ function processFrame(){
 	
 	for(var i=0; i<tiles.length; i++){
 		var tile = tiles[i];
-		if(tile.force > 0.3){
+		if(tile.force > 0.05){
 			//expand
 			tile.moveX *= tile.force;
 			tile.moveY *= tile.force;
@@ -366,14 +402,17 @@ function copyPixel(sImageData, sx, sy, dImageData, dx, dy){
 	</div>
 	<div>
 	  <center>
-		<canvas id="output" width="1000" height="600" onmousedown="dropBomb(event, this)" style="border: solid 5px #666666"></canvas>
-		<p id='note' style='font-size: 20pt;'><p>
+		<canvas id="output" width="1000" height="600" onmousedown="dropBomb(event, this)"></canvas>
+		<p id='note' style='font-size: 20pt; display:none;'><p>
 	  </center>
 	</div>
 	<div>
 		<video id="webcam" muted autoplay width="640" height="480" style="display:none"></video>
 		<canvas id="canvas-source" width="640" height="480" style="display:none"></canvas>
-		<canvas id="canvas-blended" width="640" height="480" style="width: 320px; height: 240px; position: absolute; top: 0px; z-index: -1;"></canvas>
+		<center>
+			<canvas id="canvas-blended" width="640" height="480" style="width: 320px; height: 240px; position: absolute; left: 0; right: 0; margin: 0 auto; z-index: -1;"></canvas>
+			<canvas id="canvas-grid" width="640" height="480" style="width: 320px; height: 240px; position: absolute; left: 0; right: 0; margin: 0 auto; z-index: 1;"></canvas>
+		</cetner>
 	</div>
 </body>
 </html>
